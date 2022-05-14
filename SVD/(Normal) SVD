@@ -1,0 +1,48 @@
+data = CSV.read("/Users/ikram/Documents/Master/March-May 2022/Advanced Chemometrics and Statistics/Project /toxicity_data_fish_desc.csv", DataFrame)
+descr = describe(data)
+
+x = data[:, 8:end]
+namen, x = remove_shit(x);
+X = Matrix(x)
+namen = namen
+
+function varianceExplainedSVD(X, D, U, V)
+	# initiate an empty array
+	var_exp = zeros(size(D,1))  #Initialize an empty array (to save our information)
+    i = 1
+	for i = 1:size(D,1)
+        println(i)
+		#Copy D and set 1 value  to 0
+		Dtemp = deepcopy(D) #Copy D, so it's a complete copy
+		Dtemp[i,i] = 0  #Set the first singular value to 0
+		XTX = X'*X #Not necessary --> recalculate the other variables
+        D = diagm(sqrt.(abs.(eigvals(XTX))))
+        V = eigvecs(XTX)
+        U = X*V*pinv(D)	#Calculating U is necessary 
+        X_hat = U*Dtemp*V'
+		#Variance explained by remaining variables (all except i)
+		var_exp[i] = (sum((X.-X_hat).^2)/sum(X.^2))
+	end
+	return var_exp
+end
+
+# deactivate to run without mean centering
+X = X .- mean(X,dims = 1)
+# deactivate to run without scaling
+X = X ./ std(X,dims=1)
+
+out = svd(X)
+
+D = diagm(out.S)
+V = out.V
+U = out.U
+
+X_hat = U*D*V'
+xt = X' * X
+eigenvalues = abs.(eigvals(xt))
+V = eigvecs(xt)
+D = diagm(sqrt.(eigenvalues))
+U = X*V*pinv(D)
+var_exp = varianceExplainedSVD(X,D,U,V)	
+
+plot_var_exp = plot(var_exp)
